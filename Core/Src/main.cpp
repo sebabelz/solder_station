@@ -25,7 +25,7 @@ extern "C" {
 #endif
 
 #include <cstdio>
-#include <cstdint>
+
 
 #include "adc.h"
 #include "dma.h"
@@ -57,8 +57,6 @@ int setPoint[2] = {150, 150};
 char char_setPoint[2][4] = {"", ""};
 char actual_temp[2][4] = {"---", "---"};
 uint16_t pwmOutput = 0;
-
-char debug[20] = "";
 
 void WriteDisplay();
 
@@ -94,9 +92,9 @@ int main(void) {
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
 
-//    HAL_TIM_OC_Start_IT(&htim8, TIM_CHANNEL_2);
-//    HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_3);
-//    HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_4);
+    HAL_TIM_OC_Start_IT(&htim8, TIM_CHANNEL_2);
+    HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_3);
+    HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_4);
 
     solderingIron.configADConverter(&hi2c1);
     solderingIron.setOutput(&pwmOutput);
@@ -105,9 +103,8 @@ int main(void) {
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
     while (true) {
-        snprintf(actual_temp[0], 4,"%d", solderingIron.getTipTemperature());
+        snprintf(actual_temp[1], 4, "%d", solderingIron.getTipTemperature());
         WriteDisplay();
-
     }
 #pragma clang diagnostic pop
 
@@ -120,8 +117,6 @@ void WriteDisplay() {
     draw_text(tx_buf, actual_temp[1], 168, 40, 15);
 
     select_font(&FreeMono7pt8b);
-    draw_text(tx_buf, debug, 10, 10, 15);
-
     draw_text(tx_buf, "set:", 20, 52, 15);
     draw_text(tx_buf, "set:", 168, 52, 15);
     draw_text(tx_buf, char_setPoint[0], 56, 52, 15);
@@ -133,8 +128,7 @@ void WriteDisplay() {
   * @brief System Clock Configuration
   * @retval None
   */
-void SystemClock_Config(void)
-{
+void SystemClock_Config(void) {
     RCC_OscInitTypeDef RCC_OscInitStruct = {0};
     RCC_ClkInitTypeDef RCC_ClkInitStruct = {0};
     RCC_PeriphCLKInitTypeDef PeriphClkInit = {0};
@@ -153,25 +147,23 @@ void SystemClock_Config(void)
     RCC_OscInitStruct.PLL.PLLP = RCC_PLLP_DIV2;
     RCC_OscInitStruct.PLL.PLLQ = RCC_PLLQ_DIV2;
     RCC_OscInitStruct.PLL.PLLR = RCC_PLLR_DIV2;
-    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK)
-    {
+    if (HAL_RCC_OscConfig(&RCC_OscInitStruct) != HAL_OK) {
         Error_Handler();
     }
     /** Initializes the CPU, AHB and APB buses clocks
     */
-    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK|RCC_CLOCKTYPE_SYSCLK
-                                  |RCC_CLOCKTYPE_PCLK1|RCC_CLOCKTYPE_PCLK2;
+    RCC_ClkInitStruct.ClockType = RCC_CLOCKTYPE_HCLK | RCC_CLOCKTYPE_SYSCLK
+                                  | RCC_CLOCKTYPE_PCLK1 | RCC_CLOCKTYPE_PCLK2;
     RCC_ClkInitStruct.SYSCLKSource = RCC_SYSCLKSOURCE_PLLCLK;
     RCC_ClkInitStruct.AHBCLKDivider = RCC_SYSCLK_DIV1;
     RCC_ClkInitStruct.APB1CLKDivider = RCC_HCLK_DIV1;
     RCC_ClkInitStruct.APB2CLKDivider = RCC_HCLK_DIV1;
 
-    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK)
-    {
+    if (HAL_RCC_ClockConfig(&RCC_ClkInitStruct, FLASH_LATENCY_4) != HAL_OK) {
         Error_Handler();
     }
-    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART3|RCC_PERIPHCLK_I2C1
-                                         |RCC_PERIPHCLK_I2C2|RCC_PERIPHCLK_ADC;
+    PeriphClkInit.PeriphClockSelection = RCC_PERIPHCLK_USART3 | RCC_PERIPHCLK_I2C1
+                                         | RCC_PERIPHCLK_I2C2 | RCC_PERIPHCLK_ADC;
     PeriphClkInit.Usart3ClockSelection = RCC_USART3CLKSOURCE_PCLK1;
     PeriphClkInit.I2c1ClockSelection = RCC_I2C1CLKSOURCE_PCLK1;
     PeriphClkInit.I2c2ClockSelection = RCC_I2C2CLKSOURCE_PCLK1;
@@ -183,14 +175,12 @@ void SystemClock_Config(void)
     PeriphClkInit.PLLSAI1.PLLSAI1Q = RCC_PLLQ_DIV2;
     PeriphClkInit.PLLSAI1.PLLSAI1R = RCC_PLLR_DIV2;
     PeriphClkInit.PLLSAI1.PLLSAI1ClockOut = RCC_PLLSAI1_ADC1CLK;
-    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK)
-    {
+    if (HAL_RCCEx_PeriphCLKConfig(&PeriphClkInit) != HAL_OK) {
         Error_Handler();
     }
     /** Configure the main internal regulator output voltage
     */
-    if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK)
-    {
+    if (HAL_PWREx_ControlVoltageScaling(PWR_REGULATOR_VOLTAGE_SCALE1) != HAL_OK) {
         Error_Handler();
     }
 }
@@ -208,16 +198,14 @@ void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     if (GPIO_Pin == ENC1_A_Pin) {
         if (HAL_GPIO_ReadPin(ENC1_B_GPIO_Port, ENC1_B_Pin)) {
-            snprintf(char_setPoint[0], 4, "%d",  solderingIron.setSetPoint(--setPoint[0]));
+            snprintf(char_setPoint[0], 4, "%d", solderingIron.setSetPoint(--setPoint[0]));
         } else {
-            snprintf(char_setPoint[0], 4, "%d",  solderingIron.setSetPoint(++setPoint[0]));
+            snprintf(char_setPoint[0], 4, "%d", solderingIron.setSetPoint(++setPoint[0]));
         }
     }
 
     if (GPIO_Pin == ENC1_SW_Pin) {
         solderingIron.toggle();
-        snprintf(char_setPoint[1], 4, "%d", 333);
-
     }
 
     if (GPIO_Pin == ENC2_A_Pin) {
@@ -229,22 +217,18 @@ void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     }
 
     if (GPIO_Pin == ENC2_SW_Pin) {
-        snprintf(char_setPoint[1], 4, "%d", 666);
-        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, 0);
+        solderingIron.toggle();
     }
 }
 
 void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim) {
     if (htim->Instance == TIM1) {
-
         solderingIron.processControl();
-        snprintf(debug, 20, "%d", pwmOutput);
         __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, pwmOutput);
-
-
     }
     if (htim->Instance == TIM8) {
-
+        solderingIron.processControl();
+        __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4, pwmOutput);
     }
 }
 

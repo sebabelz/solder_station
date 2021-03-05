@@ -1,7 +1,3 @@
-//
-// Created by BelzS on 17.08.2019.
-//
-
 #include <cmath>
 #include "SolderingHandle.h"
 

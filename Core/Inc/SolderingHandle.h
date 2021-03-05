@@ -1,9 +1,5 @@
-//
-// Created by BelzS on 17.08.2019.
-//
+#pragma once
 
-#ifndef SOLDERINGHANDLE_H
-#define SOLDERINGHANDLE_H
 #include <vector>
 #include "AD7995.h"
 #include "PID.h"
@@ -66,5 +62,3 @@ public:
     virtual int getTipTemperature() = 0;
 };
 
-
-#endif //SOLDERINGHANDLE_H
