@@ -64,6 +64,7 @@ void PID::processData(uint32_t actualTime) {
     _lastTime = actualTime;
     _lastError = _error;
 
+
     *_output = controlOutput;
 }
 

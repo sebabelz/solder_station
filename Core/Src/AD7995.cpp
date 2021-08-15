@@ -4,18 +4,27 @@
 #include <cstdio>
 #include "AD7995.h"
 
-AD7995::AD7995()
-{
+AD7995::AD7995() {
+}
+
+AD7995::AD7995(uint8_t address) {
+    _address = address;
+}
+
+void AD7995::setAddress(uint8_t address) {
+    _address = address;
 }
 
 void AD7995::setI2CHandle(I2C_HandleTypeDef *handle)
 {
-    if (handle == nullptr)
-    {
-        printf("ERROR");
-    }
-    this->handle = handle;
+
+    _handle = handle;
 }
+
+I2C_HandleTypeDef *AD7995::getI2CHandle() {
+    return _handle;
+}
+
 
 void AD7995::setChannels(Channel ch)
 {
@@ -83,42 +92,39 @@ uint16_t AD7995::getRawData(Channel ch)
 
 uint16_t AD7995::getResolution() const
 {
-    return resolution;
-}
-
-bool AD7995::isConnected() const
-{
-    return connected;
+    return _resolution;
 }
 
 HAL_StatusTypeDef AD7995::readAllChannels()
 {
-    HAL_I2C_Master_Transmit(this->handle, this->address, &this->config, sizeof(this->config), 1);
-
     uint8_t data[8] = {0};
-    HAL_StatusTypeDef status = HAL_I2C_Master_Receive(this->handle, this->address, data, this->channelCount * 2 * sizeof(uint8_t), 1);
+    HAL_I2C_Master_Transmit(this->_handle, this->_address, &this->config, sizeof(this->config), 1);
+    HAL_StatusTypeDef status = HAL_I2C_Master_Receive(this->_handle, this->_address, data, this->channelCount * 2 * sizeof(uint8_t), 1);
 
     for (int i = 0, j = 0; i < channelCount; ++i, j += 2)
     {
         uint8_t pos = (data[j] >> 4) & 0x03;
         this->rawData[pos] = (((data[j] << 6) & 0x3C0) | ((data[j + 1] >> 2) & 0x3F));
     }
-    connected = status == HAL_OK;
+
     return status;
 }
 
 HAL_StatusTypeDef AD7995::readChannel(Channel ch)
 {
     auto tmpConfig = config;
-    HAL_I2C_Master_Transmit(this->handle, this->address, &tmpConfig, sizeof(tmpConfig), 1);
-
     uint8_t data[2] = {0};
-    HAL_StatusTypeDef status = HAL_I2C_Master_Receive(this->handle, this->address, data, 2 * sizeof(uint8_t), 1);
+
+    HAL_I2C_Master_Transmit(this->_handle, this->_address, &tmpConfig, sizeof(tmpConfig), 1);
+    HAL_StatusTypeDef status = HAL_I2C_Master_Receive(this->_handle, this->_address, data, 2 * sizeof(uint8_t), 1);
 
 
     uint8_t pos = (data[0] >> 4) & 0x03;
     this->rawData[pos] = (((data[0] << 6) & 0x3C0) | ((data[1] >> 2) & 0x3F));
 
-    connected = status == HAL_OK;
     return status;
 }
+
+
+
+
