@@ -17,8 +17,9 @@
   ******************************************************************************
   */
 
+#include <AD7995.h>
 #include "main.h"
-#include "SolderingIron.h"
+#include "SolderingHandle.h"
 
 #ifdef __cplusplus
 extern "C" {
@@ -41,6 +42,7 @@ extern "C" {
 #include "Fonts/FreeMono7pt8b.h"
 #include "Fonts/FreeMono18pt8b.h"
 
+
 void SystemClock_Config(void);
 
 #ifdef __cplusplus
@@ -50,13 +52,15 @@ void SystemClock_Config(void);
 volatile uint8_t OLED_TX_completed_flag = 1;    //flag indicating finish of SPI transmission
 uint8_t tx_buf[256 * 64 / 2];
 
-SolderingIron solderingIron;
+SolderingHandle handle[2];
+char debug[20] = "";
 
+uint32_t buffer[8] = {0};
 
-int setPoint[2] = {150, 150};
+int setPoint[2] = {320, 320};
 char char_setPoint[2][4] = {"", ""};
 char actual_temp[2][4] = {"---", "---"};
-uint16_t pwmOutput = 0;
+uint16_t pwmOutput[2][2];
 
 void WriteDisplay();
 
@@ -64,8 +68,7 @@ void WriteDisplay();
   * @brief  The application entry point.
   * @retval int
   */
-int main(void) {
-
+int main() {
     HAL_Init();
 
     SystemClock_Config();
@@ -77,10 +80,17 @@ int main(void) {
     MX_I2C2_Init();
     MX_SPI2_Init();
     MX_TIM1_Init();
+    MX_TIM3_Init();
     MX_TIM8_Init();
     MX_USART3_UART_Init();
 
     SSD1322_API_init();
+
+    if (HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED) != HAL_OK) {
+        Error_Handler();
+    };
+
+    HAL_ADC_Start_DMA(&hadc1, buffer, 8);
 
     set_buffer_size(256, 64);
     send_buffer_to_OLED(tx_buf, 0, 0);
@@ -88,22 +98,32 @@ int main(void) {
     snprintf(char_setPoint[0], 4, "%d", setPoint[0]);
     snprintf(char_setPoint[1], 4, "%d", setPoint[1]);
 
-    HAL_TIM_OC_Start_IT(&htim1, TIM_CHANNEL_2);
+    HAL_TIM_OC_Start_IT(&htim3, TIM_CHANNEL_1);
+    HAL_TIM_OC_Start_IT(&htim3, TIM_CHANNEL_2);
+
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_3);
     HAL_TIM_PWM_Start(&htim1, TIM_CHANNEL_4);
 
-    HAL_TIM_OC_Start_IT(&htim8, TIM_CHANNEL_2);
     HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_3);
     HAL_TIM_PWM_Start(&htim8, TIM_CHANNEL_4);
 
-    solderingIron.configADConverter(&hi2c1);
-    solderingIron.setOutput(&pwmOutput);
-    solderingIron.setSetPoint(setPoint[0]);
+
+    handle[0].setI2CHandle(&hi2c1);
+    handle[0].setSetPoint(setPoint[0]);
+    handle[0].setOutput(&pwmOutput[0][0], &pwmOutput[0][1]);
+
+    handle[1].setI2CHandle(&hi2c2);
+    handle[1].setSetPoint(setPoint[1]);
+    handle[1].setOutput(&pwmOutput[1][0], &pwmOutput[1][1]);
+
 
 #pragma clang diagnostic push
 #pragma ide diagnostic ignored "EndlessLoop"
     while (true) {
-        snprintf(actual_temp[1], 4, "%d", solderingIron.getTipTemperature());
+        snprintf(actual_temp[0], 4, "%d", handle[0].getTipTemperature());
+        snprintf(actual_temp[1], 4, "%d", handle[1].getTipTemperature());
+
+        snprintf(debug, 20, "%lu", buffer[3]);
         WriteDisplay();
     }
 #pragma clang diagnostic pop
@@ -117,6 +137,8 @@ void WriteDisplay() {
     draw_text(tx_buf, actual_temp[1], 168, 40, 15);
 
     select_font(&FreeMono7pt8b);
+    draw_text(tx_buf, debug, 10, 10, 15);
+
     draw_text(tx_buf, "set:", 20, 52, 15);
     draw_text(tx_buf, "set:", 168, 52, 15);
     draw_text(tx_buf, char_setPoint[0], 56, 52, 15);
@@ -185,51 +207,87 @@ void SystemClock_Config(void) {
     }
 }
 
+void HAL_ADC_ConvCpltCallback(ADC_HandleTypeDef* hadc)
+{
+
+
+}
+
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi) {
     SSD1322_HW_drive_CS_high();
     OLED_TX_completed_flag = 1;
 }
 
 /**
-  * @brief EXTI line detection callbacks
-  * @param GPIO_Pin: Specifies the pins connected EXTI line
-  * @retval None
+//  * @brief EXTI line detection callbacks
+//  * @param GPIO_Pin: Specifies the pins connected EXTI line
+//  * @retval None
   */
 void HAL_GPIO_EXTI_Callback(uint16_t GPIO_Pin) {
     if (GPIO_Pin == ENC1_A_Pin) {
         if (HAL_GPIO_ReadPin(ENC1_B_GPIO_Port, ENC1_B_Pin)) {
-            snprintf(char_setPoint[0], 4, "%d", solderingIron.setSetPoint(--setPoint[0]));
+            snprintf(char_setPoint[0], 4, "%d",handle[0].setSetPoint(--setPoint[0]));
         } else {
-            snprintf(char_setPoint[0], 4, "%d", solderingIron.setSetPoint(++setPoint[0]));
+            snprintf(char_setPoint[0], 4, "%d", handle[0].setSetPoint(++setPoint[0]));
         }
     }
 
     if (GPIO_Pin == ENC1_SW_Pin) {
-        solderingIron.toggle();
+        handle[0].toggle();
     }
 
     if (GPIO_Pin == ENC2_A_Pin) {
         if (HAL_GPIO_ReadPin(ENC2_SW_GPIO_Port, ENC2_B_Pin)) {
-            snprintf(char_setPoint[1], 4, "%d", solderingIron.setSetPoint(--setPoint[1]));
+            snprintf(char_setPoint[1], 4, "%d", handle[0].setSetPoint(--setPoint[1]));
         } else {
-            snprintf(char_setPoint[1], 4, "%d", solderingIron.setSetPoint(++setPoint[1]));
+            snprintf(char_setPoint[1], 4, "%d", handle[0].setSetPoint(++setPoint[1]));
         }
     }
 
     if (GPIO_Pin == ENC2_SW_Pin) {
-        solderingIron.toggle();
+        handle[1].toggle();
     }
 }
 
 void HAL_TIM_OC_DelayElapsedCallback(TIM_HandleTypeDef *htim) {
     if (htim->Instance == TIM1) {
-        solderingIron.processControl();
-        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, pwmOutput);
+        handle[0].processControl();
+        if (handle[0].getStatus() == ConnectionStatus::Disconnected) {
+            HAL_TIM_OC_Start_IT(&htim3, TIM_CHANNEL_1);
+            HAL_TIM_OC_Stop_IT(&htim1, TIM_CHANNEL_2);
+        }
+
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_4, pwmOutput[0][0]);
+        __HAL_TIM_SET_COMPARE(&htim1, TIM_CHANNEL_3, pwmOutput[0][1]);
     }
+
     if (htim->Instance == TIM8) {
-        solderingIron.processControl();
-        __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4, pwmOutput);
+        handle[1].processControl();
+        if (handle[1].getStatus() == ConnectionStatus::Disconnected) {
+            HAL_TIM_OC_Start_IT(&htim3, TIM_CHANNEL_2);
+            HAL_TIM_OC_Stop_IT(&htim8, TIM_CHANNEL_2);
+        }
+
+        __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_4, pwmOutput[1][0]);
+        __HAL_TIM_SET_COMPARE(&htim8, TIM_CHANNEL_3, pwmOutput[1][1]);
     }
+    if (htim->Instance == TIM3) {
+        if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_1) {
+            handle[0].checkConnection();
+            if (handle[0].getStatus() != ConnectionStatus::Disconnected) {
+                HAL_TIM_OC_Stop_IT(&htim3, TIM_CHANNEL_1);
+                HAL_TIM_OC_Start_IT(&htim1, TIM_CHANNEL_2);
+            }
+        }
+        if (htim->Channel == HAL_TIM_ACTIVE_CHANNEL_2) {
+            handle[1].checkConnection();
+            if (handle[1].getStatus() != ConnectionStatus::Disconnected) {
+                HAL_TIM_OC_Stop_IT(&htim3, TIM_CHANNEL_2);
+                HAL_TIM_OC_Start_IT(&htim8, TIM_CHANNEL_2);
+            }
+        }
+    }
+
 }
 
 /**

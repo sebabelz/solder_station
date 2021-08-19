@@ -191,7 +191,7 @@ void draw_hline(uint8_t *frame_buffer, uint16_t y, uint16_t x0, uint16_t x1, uin
 */
 void draw_line(uint8_t *frame_buffer, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t brightness)
 {
-	//handle horizontal and vertical lines with appropriate functions
+	//_handle horizontal and vertical lines with appropriate functions
 	if (x0 == x1)
 	{
 		draw_vline(frame_buffer, x0, y0, y1, brightness);
@@ -279,7 +279,7 @@ void draw_line(uint8_t *frame_buffer, uint16_t x0, uint16_t y0, uint16_t x1, uin
 */
 void draw_AA_line(uint8_t *frame_buffer, uint16_t x0, uint16_t y0, uint16_t x1, uint16_t y1, uint8_t brightness)
 {
-	//handle horizontal and vertical lines with appropriate functions
+	//_handle horizontal and vertical lines with appropriate functions
 	if (x0 == x1)
 	{
 		draw_vline(frame_buffer, x0, y0, y1, brightness);
@@ -314,7 +314,7 @@ void draw_AA_line(uint8_t *frame_buffer, uint16_t x0, uint16_t y0, uint16_t x1, 
 	float dy = y1 - y0;
 	float gradient = dy / dx;
 
-	// handle first endpoint
+	// _handle first endpoint
 	float xend = round(x0);
 	float yend = y0 + gradient * (xend - x0);
 	float xgap =  1 - ((x0 + 0.5) - floor(x0 + 0.5));
@@ -333,7 +333,7 @@ void draw_AA_line(uint8_t *frame_buffer, uint16_t x0, uint16_t y0, uint16_t x1, 
 
 	float intery = yend + gradient; // first y-intersection for the main loop
 
-	// handle second endpoint
+	// _handle second endpoint
 	xend = round(x1);
 	yend = y1 + gradient * (xend - x1);
 	xgap = (x1 + 0.5) - floor(x1 + 0.5);

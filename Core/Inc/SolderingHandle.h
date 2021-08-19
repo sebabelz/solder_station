@@ -16,13 +16,15 @@ extern "C" {
 enum class ConnectionStatus
 {
     Disconnected,
-    HandleConncected,
     TipConnected,
+    TweezerConncected,
 };
+
+
 
 class SolderingHandle
 {
-protected:
+private:
     const float adcResolution = 1024;
     const float beta = 3940;
     const float refTemp = 298.15;
@@ -31,34 +33,43 @@ protected:
     const float tipGain = 0.48; //0.54
 
 
-    uint32_t refTemperature = 0;
 
-    ConnectionStatus status = ConnectionStatus::Disconnected;
-    AD7995 adConverter;
+    AD7995 _adConverter;
+    PID _control[2];
+    ConnectionStatus _status = ConnectionStatus::Disconnected;
 
-    static int limitSetPoint(int setPoint);
+    uint16_t _tipTemperature[2] = { 0 };
+    float refTemperature = 0;
+    int _setPoint = 0;
+
+    int limitSetPoint(int setPoint);
     float getReferenceTemperature(Channel ch);
 public:
-    SolderingHandle() = default;
+    SolderingHandle();
+    explicit SolderingHandle(I2C_HandleTypeDef *handle);
+
     virtual ~SolderingHandle() = default;
 
     ConnectionStatus getStatus() const;
 
-    virtual int getSetPoint() = 0;
-    virtual int setSetPoint(int setPoint) = 0;
-    virtual int increaseSetPoint() = 0;
-    virtual int decreaseSetPoint() = 0;
-    virtual int increaseSetPoint(int value) = 0;
-    virtual int decreaseSetPoint(int value) = 0;
+    int getSetPoint() const;
+    int setSetPoint(int setPoint);
 
-    virtual void processControl() = 0;
-    virtual void setOutput(uint16_t *output) = 0;
-    virtual void enable() = 0;
-    virtual void disable() = 0;
-    virtual void toggle() = 0;
+    void setOutput(uint16_t *out);
+    void setOutput(uint16_t *out1, uint16_t *out2);
+    void enable();
+    void disable();
+    void toggle();
 
-    virtual void configADConverter(I2C_HandleTypeDef *handle) = 0;
-    virtual void calculateTipTemperature() = 0;
-    virtual int getTipTemperature() = 0;
+    void setI2CHandle(I2C_HandleTypeDef *handle);
+    void checkConnection();
+
+    int getTipTemperature();
+    void calculateTipTemperature();
+
+    void processControl();
+
+
+
 };
 

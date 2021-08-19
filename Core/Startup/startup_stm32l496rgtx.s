@@ -6,7 +6,7 @@
   *            This module performs:
   *                - Set the initial SP
   *                - Set the initial PC == Reset_Handler,
-  *                - Set the vector table entries with the exceptions ISR address,
+  *                - Set the vector table entries with the exceptions ISR _address,
   *                - Configure the clock system  
   *                - Branches to main in the C library (which eventually
   *                  calls main()).
@@ -34,16 +34,16 @@
 .global	g_pfnVectors
 .global	Default_Handler
 
-/* start address for the initialization values of the .data section.
+/* start _address for the initialization values of the .data section.
 defined in linker script */
 .word	_sidata
-/* start address for the .data section. defined in linker script */
+/* start _address for the .data section. defined in linker script */
 .word	_sdata
-/* end address for the .data section. defined in linker script */
+/* end _address for the .data section. defined in linker script */
 .word	_edata
-/* start address for the .bss section. defined in linker script */
+/* start _address for the .bss section. defined in linker script */
 .word	_sbss
-/* end address for the .bss section. defined in linker script */
+/* end _address for the .bss section. defined in linker script */
 .word	_ebss
 
 .equ  BootRAM,        0xF1E0F85F
@@ -119,7 +119,7 @@ Infinite_Loop:
 /******************************************************************************
 *
 * The minimal vector table for a Cortex-M4.  Note that the proper constructs
-* must be placed on this to ensure that it ends up at physical address
+* must be placed on this to ensure that it ends up at physical _address
 * 0x0000.0000.
 *
 ******************************************************************************/
